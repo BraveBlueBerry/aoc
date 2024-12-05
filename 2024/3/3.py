@@ -2,7 +2,6 @@ import re
 
 f = open("input.txt", "r")
 corrupted_memory = f.read()
-f.close()
 
 matches = re.findall(r"mul\(\d{1,3},\d{1,3}\)|do\(\)|don't\(\)", corrupted_memory)
 

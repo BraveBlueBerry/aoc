@@ -12,8 +12,6 @@ for line in i:
         report.append(int(match))
     reports.append(report)
 
-i.close()
-
 safeReports = 0
 unsafereports = []
 
