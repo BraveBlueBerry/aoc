@@ -10,6 +10,8 @@ for line in i:
     leftlist.append(matches[0])
     rightlist.append(matches[1])
 
+i.close()
+
 leftlist.sort()
 rightlist.sort()
 

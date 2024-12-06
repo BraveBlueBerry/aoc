@@ -11,6 +11,8 @@ for line in input:
     rightlist.append(matches[1])
 
 input.close()
+
+input.close()
 total = 0
 
 for x in leftlist:
