@@ -7,6 +7,8 @@ lfw_list = list(look_for_word)
 for line in i:
     board.append(list(line.replace("\n", "")))
 
+i.close()
+
 def check_neighbours(current_location):
     row = board[current_location[1]]
     current_letter = row[current_location[0]]

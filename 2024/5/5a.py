@@ -16,6 +16,9 @@ for line in rules_f:
 for line in printing_f:
     updates.append(line.strip().split(","))
 
+rules_f.close()
+printing_f.close()
+
 valid_updates_count = 0
 invalid_updates = {}
 valid_updates = []
