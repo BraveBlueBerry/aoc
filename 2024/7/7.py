@@ -21,18 +21,6 @@ def evaluate_expression(vals, o_combo):
     adjusted_vals = deepcopy(vals)
     adjusted_combo = deepcopy(o_combo)
 
-    # if adjusted_combo.count('||') > 0:
-    #     print(f'|| in combo, combo is: {adjusted_combo}')
-    #     combine_indices = [index for index, value in enumerate(adjusted_combo) if value == '||']
-    #     for combine_index in reversed(combine_indices):
-    #         new_val = int(str(vals[combine_index]) + str(vals[combine_index + 1]))
-    #         del adjusted_combo[combine_index]
-    #         del adjusted_vals[combine_index]
-    #         del adjusted_vals[combine_index]
-    #         adjusted_vals.insert(combine_index, new_val)
-
-
-
     for i, operator in enumerate(adjusted_combo):
         if operator == '+':
             r += int(adjusted_vals[i + 1])
