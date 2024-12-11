@@ -1,4 +1,7 @@
 from collections import deque
+import time
+
+start_time = time.time()
 
 i = open("input_big.txt", "r")
 
@@ -20,8 +23,8 @@ for d in disk_map:
         block_representation.extend(['.'] * digit)
         is_block = True
 
-print(block_representation)
-print('\n\n\n')
+# print(block_representation)
+# print('\n\n\n')
 
 def determine_free_space(l, wanted_space: int, start_looking_from, end_looking_at):
     look_from = start_looking_from
@@ -59,7 +62,7 @@ for reversed_index, block in enumerate(reversed(block_representation)):
         current_file = only_nums[-1]
         if current_file != block:
             continue
-        print(current_file)
+        # print(current_file)
         while only_nums and only_nums[-1] == current_file:
             only_nums.pop()
             count_file_size += 1
@@ -80,10 +83,13 @@ for reversed_index, block in enumerate(reversed(block_representation)):
         continue
         # exit()
 
-print(block_representation)
+# print(block_representation)
 checksum = 0
 for index, block in enumerate(block_representation):
     if block != '.':
         checksum += index * int(block)
 
 print(checksum)
+end_time = time.time()
+
+print(f"Execution time: {end_time - start_time:.2f} seconds")
