@@ -75,7 +75,7 @@ i = open("input.txt", "r")
 at: ('8400', '5400')
 
 data = []
-matches = re.findall('\d{1,999999999}, Y[+|=]\d{1,999999999}', i.read())
+matches = re.findall('\d+, Y[+|=]\d+', i.read())
 
 i.close()
 
