@@ -1,4 +1,4 @@
-from common.map_solver import Room, Position, Mover, Maze
+from common.map_solver import Maze
 
 i = open("input.txt", "r")
 
