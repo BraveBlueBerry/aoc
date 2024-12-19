@@ -1,5 +1,6 @@
 import re
-from common.map_solver import RoomWithMoveableObjects, Direction, Mover, Position, Room
+from common.map_solver import AbsRoomWithMoveableObjects, Mover, AbsRoom
+from common.navigation_utils import Position, Direction
 
 i = open("input.txt", "r")
 
@@ -46,7 +47,7 @@ for y, row in enumerate(big_warehouse):
 
 ## Part 1
 mover = Mover(s_pos)
-warehouse = RoomWithMoveableObjects(warehouse, mover)
+warehouse = AbsRoomWithMoveableObjects(warehouse, mover)
 for direction in route:
     print(direction)
     direction = Direction.from_symbol(direction)
@@ -57,7 +58,7 @@ print(warehouse.get_score())
 
 ## Part 2
 mover = Mover(s_big_pos)
-big_warehouse = RoomWithMoveableObjects(big_warehouse, mover)
+big_warehouse = AbsRoomWithMoveableObjects(big_warehouse, mover)
 print(big_warehouse)
 # for direction in route:
 #     print(direction)

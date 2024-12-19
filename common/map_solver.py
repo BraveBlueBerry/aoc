@@ -1,43 +1,11 @@
 from abc import ABC, abstractmethod
-from enum import Enum
 import heapq
+from copy import deepcopy
 from itertools import count
 
+from common.a_star_alts import determine_tentative_cost
+from common.navigation_utils import Position, Direction
 
-class Position:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def __repr__(self):
-        return f'(x: {self.x}, y: {self.y})'
-
-    def __hash__(self):
-        return hash((self.x, self.y))
-
-    def __eq__(self, other):
-        if isinstance(other, Position):
-            return self.x == other.x and self.y == other.y
-        return False
-
-class Direction(Enum):
-    UP = ('^', Position(0, -1))
-    RIGHT = ('>', Position(1, 0))
-    DOWN = ('v', Position(0, 1))
-    LEFT = ('<', Position(-1, 0))
-
-    @classmethod
-    def from_symbol(cls, symbol):
-        for direction in cls:
-            if direction.value[0] == symbol:
-                return direction
-        raise ValueError(f"Invalid direction symbol: {symbol}")
-
-    def move(self):
-        return self.value[1]  # Returns the Position
-
-    def get_symbol(self):
-        return self.value[0]
 
 class Mover(ABC):
     position: Position
@@ -54,6 +22,7 @@ class Mover(ABC):
 
 class Area(ABC):
     the_area: list[list[str | int]] = []
+    original_area: list[list[str | int]] = deepcopy(the_area)
     empty_space: str|int = '.'
     wall: str|int = '#'
 
@@ -79,15 +48,27 @@ class Area(ABC):
     def get_spot(self, pos: Position):
         return self.the_area[pos.y][pos.x]
 
-    def change_spot(self, pos: Position, new: str|int):
+    def change_spot(self, pos: Position, new: str | int):
         self.the_area[pos.y][pos.x] = new
 
-class Room(Area):
+    def make_the_area(self, space_size: int):
+        for y in range(space_size):
+            row = []
+            for x in range(space_size):
+                row.append(self.empty_space)
+            self.the_area.append(row)
+            self.original_area.append(row)
+
+    def add_obstruction(self, pos: Position):
+        self.the_area[pos.y][pos.x] = self.wall
+        self.original_area[pos.y][pos.x] = self.wall
+
+class AbsRoom(Area):
     mover: Mover
-    empty_space: str|int = '.'
 
     def __init__(self, a: list[list[str|int]],m: Mover):
-        self.the_area = a
+        self.the_area = deepcopy(a)
+        self.original_area = deepcopy(a)
         self.mover = m
 
     @abstractmethod
@@ -112,7 +93,7 @@ class Room(Area):
         pass
 
 
-class RoomWithMoveableObjects(Room):
+class AbsRoomWithMoveableObjects(AbsRoom):
     moveable_obstruction: str =  'O'
     big_moveable_obstruction: list[str] = ['[', ']']
     big_obstr_left: str = big_moveable_obstruction[0]
@@ -238,6 +219,21 @@ class Maze(Area):
                     self.end_position = Position(x, y)
         self.counter = count()
 
+    # def get_path_count(self):
+
+    def add_start(self, pos: Position):
+        self.change_spot(pos, self.starting_symbol)
+        self.original_area[pos.y][pos.x] = self.starting_symbol
+        self.starting_position = pos
+
+    def add_end(self, pos: Position):
+        self.change_spot(pos, self.end_symbol)
+        self.original_area[pos.y][pos.x] = self.end_symbol
+        self.end_position = pos
+
+    def reset(self):
+        self.the_area = deepcopy(self.original_area)
+
     def reconstruct_path(self, path):
         reconstructed_path = []
         current = self.end_position
@@ -252,10 +248,15 @@ class Maze(Area):
         reconstructed_path.append(self.starting_position)
         return reconstructed_path[::-1]
 
-    def solve_maze_a_star(self):
-        def heuristic(current: Position):
-            goal = self.end_position
-            return abs(current.x - goal.x) + abs(current.y - goal.y)
+    def manhattan_heuristic(self, current: Position):
+        goal = self.end_position
+        return abs(current.x - goal.x) + abs(current.y - goal.y)
+
+    def solve_maze_a_star(self, heuristic=None, det_tentative_cost=None, direction_matters=False):
+        if heuristic is None:
+            heuristic = self.manhattan_heuristic
+        if det_tentative_cost is None:
+            det_tentative_cost = determine_tentative_cost
 
         visited = set()
         to_visit = []
@@ -284,15 +285,16 @@ class Maze(Area):
                 if not self.is_in_map(neighbour_pos) or self.get_spot(neighbour_pos) == self.wall:
                     continue
 
-                tentative_score = path_score[current_pos] + 1
-                if current_direction_symbol != self.starting_symbol and current_direction_symbol != direction.get_symbol():
-                    tentative_score += 1000
+                if direction_matters:
+                    tentative_score = det_tentative_cost(path_score, current_pos, Direction.from_symbol(current_direction_symbol), direction)
+                else:
+                    tentative_score = det_tentative_cost(path_score, current_pos)
+
                 if neighbour_pos not in path_score or tentative_score < path_score[neighbour_pos]:
                     path[neighbour_pos] = (current_pos, direction.get_symbol())
                     path_score[neighbour_pos] = tentative_score
                     estimated_score[neighbour_pos] = tentative_score + heuristic(neighbour_pos)
                     heapq.heappush(to_visit, (estimated_score[neighbour_pos], next(self.counter), neighbour_pos, direction.get_symbol()))
-
             loop += 1
 
-
+        return {}, 0
