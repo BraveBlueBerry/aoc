@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 import heapq
+from collections import deque
 from copy import deepcopy
 from itertools import count
 
@@ -63,6 +64,26 @@ class Area(ABC):
         self.the_area[pos.y][pos.x] = self.wall
         self.original_area[pos.y][pos.x] = self.wall
 
+    def get_walls(self, only_inner_walls=False):
+        walls = []
+        for y, row in enumerate(self.the_area):
+            for x, col in enumerate(row):
+                if col == self.wall:
+                    if only_inner_walls and (x == 0 or y == 0 or x == len(row) or y == len(self.the_area)):
+                        continue
+                    walls.append(Position(x, y))
+        return walls
+
+    @staticmethod
+    def get_next_pos_for_pos(pos: Position, d: Direction):
+        return Position(pos.x + d.move().x, pos.y + d.move().y)
+
+    def get_neighbours(self, pos: Position):
+        neighbours = {}
+        for d in Direction:
+            neighbours[d] = self.get_next_pos_for_pos(pos, d)
+        return neighbours
+
 class AbsRoom(Area):
     mover: Mover
 
@@ -77,10 +98,6 @@ class AbsRoom(Area):
 
     def get_next_pos_for_mover(self, d: Direction):
         return Position(self.mover.position.x + d.move().x, self.mover.position.y + d.move().y)
-
-    @staticmethod
-    def get_next_pos_for_pos(pos: Position, d: Direction):
-        return Position(pos.x + d.move().x, pos.y + d.move().y)
 
 
     def move_mover(self, n_pos: Position):
@@ -209,7 +226,8 @@ class Maze(Area):
     starting_direction: str # S if it doesn't matter
 
     def __init__(self, a: list[list[str | int]], starting_direction = 'S'):
-        self.the_area = a
+        self.the_area = deepcopy(a)
+        self.original_area = deepcopy(a)
         self.starting_direction = starting_direction
         for y, row in enumerate(self.the_area):
             for x, col in enumerate(row):
@@ -298,3 +316,40 @@ class Maze(Area):
             loop += 1
 
         return {}, 0
+
+    def bfs_find_all_paths(self):
+        """Find all shortest paths from 'S' to 'E' using BFS"""
+        start = self.starting_position
+        end = self.end_position
+
+        queue = deque([(start, [start])])  # Queue to store (position, path taken so far)
+        visited = set([start])  # Set of visited positions to avoid revisiting
+
+        shortest_paths = []
+        shortest_length = float('inf')
+
+        while queue:
+            current_pos, path = queue.popleft()
+
+            # If we reach the endpoint
+            if current_pos == end:
+                # If we find a shorter path, reset the shortest paths list
+                if len(path) < shortest_length:
+                    shortest_paths = [path]  # Found a new shortest path
+                    shortest_length = len(path)
+                # If the path length matches the shortest length, add it as a valid path
+                elif len(path) == shortest_length:
+                    shortest_paths.append(path)  # Another shortest path
+
+            # Explore neighbors (up, down, left, right)
+            for direction in Direction:
+                d = direction.move()
+                next_pos = Position(current_pos.x + d.x, current_pos.y + d.y)
+
+                # Check if the position is valid, not a wall, and hasn't been visited in the current path
+                if self.is_in_map(next_pos) and next_pos not in visited and self.get_spot(next_pos) != self.wall:
+                    visited.add(next_pos)
+                    queue.append((next_pos, path + [next_pos]))
+
+        return shortest_paths
+
