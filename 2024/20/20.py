@@ -14,7 +14,7 @@ og_maze = Maze(original_map, '>')
 maze = Maze(original_map, '>')
 print(og_maze)
 
-path, og_score = og_maze.solve_maze_a_star()
+og_score, _ = og_maze.solve_maze_a_star()
 
 print(og_maze)
 print(og_score)
@@ -33,7 +33,7 @@ for i, wall_pos in enumerate(inner_walls):
     maze.reset()
 
     maze.change_spot(wall_pos, maze.empty_space)
-    _, score = maze.solve_maze_a_star()
+    score, _  = maze.solve_maze_a_star()
 
     if og_score - score >= 100:
         print(wall_pos)

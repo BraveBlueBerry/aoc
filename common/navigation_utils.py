@@ -36,3 +36,7 @@ class Direction(Enum):
 
     def get_symbol(self):
         return self.value[0]
+
+    @classmethod
+    def get_all_symbols(cls):
+        return [direction.value[0] for direction in cls]

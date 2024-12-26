@@ -31,7 +31,7 @@ memory_space.add_end(Position(70,70))
 print(memory_space)
 
 # Solving the maze
-_, score = memory_space.solve_maze_a_star()
+score, _  = memory_space.solve_maze_a_star()
 
 print(memory_space)
 

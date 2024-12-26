@@ -6,6 +6,7 @@ from itertools import count
 
 from common.a_star_alts import determine_tentative_cost
 from common.navigation_utils import Position, Direction
+from utils import is_in_map
 
 
 class Mover(ABC):
@@ -221,8 +222,8 @@ class AbsRoomWithMoveableObjects(AbsRoom):
 class Maze(Area):
     starting_symbol: str|int = 'S'
     end_symbol: str|int = 'E'
-    starting_position: Position
-    end_position: Position
+    starting_position: Position = None
+    end_position: Position = None
     starting_direction: str # S if it doesn't matter
 
     def __init__(self, a: list[list[str | int]], starting_direction = 'S'):
@@ -237,14 +238,18 @@ class Maze(Area):
                     self.end_position = Position(x, y)
         self.counter = count()
 
-    # def get_path_count(self):
-
     def add_start(self, pos: Position):
+        if self.starting_position is not None and self.get_spot(self.starting_position) == self.starting_symbol:
+            self.change_spot(self.starting_position, self.empty_space)
+            self.original_area[self.starting_position.y][self.starting_position.x] = self.empty_space
         self.change_spot(pos, self.starting_symbol)
         self.original_area[pos.y][pos.x] = self.starting_symbol
         self.starting_position = pos
 
     def add_end(self, pos: Position):
+        if self.end_position is not None and self.get_spot(self.end_position) == self.end_symbol:
+            self.change_spot(self.end_position, self.empty_space)
+            self.original_area[self.end_position.y][self.end_position.x] = self.end_symbol
         self.change_spot(pos, self.end_symbol)
         self.original_area[pos.y][pos.x] = self.end_symbol
         self.end_position = pos
@@ -253,18 +258,29 @@ class Maze(Area):
         self.the_area = deepcopy(self.original_area)
 
     def reconstruct_path(self, path):
+        # for p in path:
+        #     print(f'{p} => {path[p]}')
+        # print(self)
         reconstructed_path = []
         current = self.end_position
+        direction_symbol = path[current][1]
+        direction_path = []
         while current != self.starting_position:
             if current != self.end_position:
                 self.change_spot(current, direction_symbol)
 
+
             reconstructed_path.append(current)
-            direction_symbol = path[current][1]
             current = path[current][0]
 
+            direction_path.append(direction_symbol)
+            # print(f'c: {current}')
+            # print(f'epos: {self.end_position}')
+            if current != self.starting_position:
+                direction_symbol = path[current][1]
+
         reconstructed_path.append(self.starting_position)
-        return reconstructed_path[::-1]
+        return reconstructed_path[::-1], direction_path[::-1]
 
     def manhattan_heuristic(self, current: Position):
         goal = self.end_position
@@ -289,7 +305,7 @@ class Maze(Area):
         while to_visit:
             _, _, current_pos, current_direction_symbol = heapq.heappop(to_visit)
             if current_pos == self.end_position:
-                return self.reconstruct_path(path), path_score[self.end_position]
+                return path_score[self.end_position], self.reconstruct_path(path)
             if current_pos in visited:
                 continue
             visited.add(current_pos)
@@ -304,7 +320,11 @@ class Maze(Area):
                     continue
 
                 if direction_matters:
-                    tentative_score = det_tentative_cost(path_score, current_pos, Direction.from_symbol(current_direction_symbol), direction)
+                    if current_direction_symbol in Direction.get_all_symbols():
+                        tentative_score = det_tentative_cost(path_score, current_pos, Direction.from_symbol(current_direction_symbol), direction)
+                    else:
+                        tentative_score = det_tentative_cost(path_score, current_pos,
+                                                             direction, direction)
                 else:
                     tentative_score = det_tentative_cost(path_score, current_pos)
 
@@ -315,41 +335,69 @@ class Maze(Area):
                     heapq.heappush(to_visit, (estimated_score[neighbour_pos], next(self.counter), neighbour_pos, direction.get_symbol()))
             loop += 1
 
-        return {}, 0
+        return 0, {}
 
     def bfs_find_all_paths(self):
         """Find all shortest paths from 'S' to 'E' using BFS"""
+        # print(f'Find all shortest paths from {self.starting_position} to {self.end_position} using BFS')
         start = self.starting_position
         end = self.end_position
 
-        queue = deque([(start, [start])])  # Queue to store (position, path taken so far)
-        visited = set([start])  # Set of visited positions to avoid revisiting
+        v = set([start])
+        queue = deque([(start, [start], v, [self.starting_symbol])])  # Queue to store (position, path taken so far)
+          # Set of visited positions to avoid revisiting
 
         shortest_paths = []
         shortest_length = float('inf')
 
         while queue:
-            current_pos, path = queue.popleft()
+            current_pos, path, visited, directions = queue.popleft()
+            # print(f'At: {current_pos}')
 
             # If we reach the endpoint
             if current_pos == end:
+                # print('!!! Found the end !!!')
+                # print(path)
+                # print(f'The current shortest length: {shortest_length} vs the length of this path: {len(path)}')
                 # If we find a shorter path, reset the shortest paths list
                 if len(path) < shortest_length:
-                    shortest_paths = [path]  # Found a new shortest path
+                    shortest_paths = [{'path': path, 'directions': directions}]  # Found a new shortest path
                     shortest_length = len(path)
                 # If the path length matches the shortest length, add it as a valid path
                 elif len(path) == shortest_length:
-                    shortest_paths.append(path)  # Another shortest path
+                    shortest_paths.append({'path': path, 'directions': directions})  # Another shortest path
+                # print(shortest_paths)
 
             # Explore neighbors (up, down, left, right)
             for direction in Direction:
                 d = direction.move()
                 next_pos = Position(current_pos.x + d.x, current_pos.y + d.y)
 
+                # print('=====================================')
+                # print(f'Checking neighbour: {next_pos} for {current_pos}')
+                # print(f'Is it in map? {self.is_in_map(next_pos)}')
+                # if self.is_in_map(next_pos):
+                    # print(f'Is it in visited? {next_pos in visited}')
+                    # print(f'Is it a wall? {self.get_spot(next_pos) == self.wall}')
+
                 # Check if the position is valid, not a wall, and hasn't been visited in the current path
                 if self.is_in_map(next_pos) and next_pos not in visited and self.get_spot(next_pos) != self.wall:
+                    # print(f'Adding it to visited and the que for path: {path}')
                     visited.add(next_pos)
-                    queue.append((next_pos, path + [next_pos]))
+                    queue.append((next_pos, path + [next_pos], visited | {next_pos}, directions + [direction.get_symbol()]))
+            # print(queue)
+            # print('----------------------------------------------------------------------')
 
         return shortest_paths
+
+    def visualize_path(self, path, directions):
+        self.reset()
+        print(directions[1:])
+        for i, node in enumerate(path):
+            if self.get_spot(node) == self.starting_symbol:
+                continue
+            if self.get_spot(node) == self.end_symbol:
+                continue
+            self.change_spot(node, directions[i+1])
+        print(self)
 
