@@ -182,7 +182,7 @@ def search(start: Command):
     all_paths = []
     while queue:
         current, path, depth = queue.pop()
-        if depth == 26:
+        if depth == 2:
             all_paths.append({'end': current, 'intermediate': path})
         else:
             for command in get_commands_for_command(current):
