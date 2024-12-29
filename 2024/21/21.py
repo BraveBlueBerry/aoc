@@ -186,7 +186,7 @@ def search(start: Command):
             all_paths.append({'end': current, 'intermediate': path})
         else:
             for command in get_commands_for_command(current):
-                queue.append([command, path + [current] ,depth + 1])
+                queue.append([command, path + [current], depth + 1])
 
     shortest = all_paths[0]
     for path in all_paths:
